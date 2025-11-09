@@ -6,8 +6,6 @@ from entsoe import EntsoePandasClient
 from threading import Thread
 import global_variables as g
 
-#fn.setupGPIO()
-
 #background_thread = Thread(target=tel.set_tel_bot, args=())
 #background_thread.start()
 

@@ -3,6 +3,7 @@ import datetime
 import time
 from entsoe import EntsoePandasClient
 #import RPi.GPIO as GPIO
+import sys
 
 
 class entsoe_client:
@@ -43,17 +44,27 @@ class entsoe_client:
 
         self.heating_cycle = pd.concat([a,b])
         self.heating_cycle = self.heating_cycle.sort_index()
+        print("Rescheduling heating hours")
+        sys.stdout.flush()
+        print(self.heating_cycle)
+        sys.stdout.flush()
 
     def controler(self):
         now = datetime.datetime.today().strftime('%Y-%m-%d %H')  
         current_task : pd.DataFrame = self.heating_cycle.loc[now:now]
         if current_task.shape[0] == 0:
             #GPIO.output(18, GPIO.LOW)
-            print(False)
+            print("Boiller is off")
+            sys.stdout.flush()
         else:
-            remaining : pd.DataFrame = pd.concat([self.heating_cycle,current_task]).drop_duplicates(keep=False)
+            self.heating_cycle : pd.DataFrame = pd.concat([self.heating_cycle,current_task]).drop_duplicates(keep=False)
             #GPIO.output(18, GPIO.HIGH)
-            print(True)
+            print("Boiller is on")
+            sys.stdout.flush()
+            print("Remaining heating hours")
+            sys.stdout.flush()
+            print(self.heating_cycle)
+            sys.stdout.flush()
 
     def add_aditional(self, time):
         d = datetime.datetime.today()+ datetime.timedelta(days=1)
@@ -70,10 +81,15 @@ class entsoe_client:
         self.heating_cycle = pd.concat([a,b])
         self.heating_cycle = self.heating_cycle.sort_index()
 
-'''
+        print("Heating cycle after reschedule")
+        sys.stdout.flush()
+        print(self.heating_cycle)
+        sys.stdout.flush()
+
+"""
 def setupGPIO():
     GPIO.setmode(GPIO.BCM)
     GPIO.setwarnings(False)
     GPIO.setup(18, GPIO.OUT)
     GPIO.output(18, GPIO.LOW)
-'''
+"""
