@@ -8,7 +8,7 @@ def set_tel_bot():
 
     @bot.message_handler(chat_id=g.keys["telegram_user"], commands=['start'])
     def send_welcome(message):
-        g.client.add_aditional(4)
+        g.client.add_aditional(16)
         g.client.controler()
         bot.reply_to(message, "Okay, heating started!")
 
