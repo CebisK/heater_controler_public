@@ -2,7 +2,7 @@ import pandas as pd
 import datetime
 import time
 from entsoe import EntsoePandasClient
-import RPi.GPIO as GPIO
+#import RPi.GPIO as GPIO
 import sys
 
 
@@ -16,7 +16,7 @@ class entsoe_client:
 
     def get_rates(self):
         today=datetime.date.today()
-        tomorrow =  today + datetime.timedelta(days=2)
+        tomorrow =  today + datetime.timedelta(days=3)
         start = pd.Timestamp(today.strftime('%Y%m%d'), tz="Europe/Riga")
         end = pd.Timestamp(tomorrow.strftime('%Y%m%d'), tz="Europe/Riga")
         country_code = 'LV' 
@@ -27,9 +27,13 @@ class entsoe_client:
     def rescheduler(self):
         prices = self.get_rates()
         d = datetime.datetime.today()+ datetime.timedelta(days=1)
-        t = datetime.time(6)
-        until_tommorow = datetime.datetime.combine(d, t).strftime('%Y-%m-%d %H')
-        now = datetime.datetime.today().strftime('%Y-%m-%d %H')
+        t = datetime.time(7)
+        t1 = datetime.time(hour=23)
+        t2 = datetime.time(hour=14, minute=15)
+        t_evning = datetime.datetime.combine(d, t1).strftime('%Y-%m-%d %H:%M')
+        t_auction = datetime.datetime.combine(d, t2).strftime('%Y-%m-%d %H:%M')
+        until_tommorow = datetime.datetime.combine(d, t).strftime('%Y-%m-%d %H:%M')
+        now = datetime.datetime.today().strftime('%Y-%m-%d %H:%M')
         print("Available prices")
         sys.stdout.flush()
         print(prices)
@@ -48,7 +52,11 @@ class entsoe_client:
         a : pd.DataFrame = prices.loc[now:until_tommorow]
         a = a.sort_values(by="hourly prices").head(remaining_heating_hours)
 
+        avg_night_price = prices.loc[t_evning:].mean()['prices']
+
         b : pd.DataFrame = prices.loc[until_tommorow:]
+        mask = (b.index <= t_auction) & (b["hourly prices"] > avg_night_price)
+        b = b.drop(b[mask].index)
         b = b.sort_values(by="hourly prices").head(self.default_heating_time)
 
         self.heating_cycle = pd.concat([a,b])
@@ -63,12 +71,12 @@ class entsoe_client:
         now_offset_14min =  (datetime.datetime.today() - datetime.timedelta(minutes=14)).strftime('%Y-%m-%d %H:%M')
         current_task : pd.DataFrame = self.heating_cycle.loc[now_offset_14min:now]
         if current_task.shape[0] == 0:
-            GPIO.output(18, GPIO.LOW)
+            #GPIO.output(18, GPIO.LOW)
             print("Boiller is off")
             sys.stdout.flush()
         else:
             self.heating_cycle : pd.DataFrame = pd.concat([self.heating_cycle,current_task]).drop_duplicates(keep=False)
-            GPIO.output(18, GPIO.HIGH)
+            #GPIO.output(18, GPIO.HIGH)
             print("Boiller is on")
             sys.stdout.flush()
             print("Remaining heating hours")
@@ -78,7 +86,7 @@ class entsoe_client:
 
     def add_aditional(self, time):
         d = datetime.datetime.today()+ datetime.timedelta(days=1)
-        t = datetime.time(6)
+        t = datetime.time(7)
         until_tommorow = datetime.datetime.combine(d, t).strftime('%Y-%m-%d %H:%M')
         now = datetime.datetime.today().strftime('%Y-%m-%d %H:%M')
         now_offset_14min =  (datetime.datetime.today() - datetime.timedelta(minutes=14)).strftime('%Y-%m-%d %H:%M')
@@ -97,9 +105,10 @@ class entsoe_client:
         print(self.heating_cycle)
         sys.stdout.flush()
 
-
+"""
 def setupGPIO():
     GPIO.setmode(GPIO.BCM)
     GPIO.setwarnings(False)
     GPIO.setup(18, GPIO.OUT)
     GPIO.output(18, GPIO.LOW)
+"""

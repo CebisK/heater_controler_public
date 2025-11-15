@@ -5,11 +5,14 @@ from threading import Thread
 import global_variables as g
 import pandas as pd
 #%%
+import datetime
+
 prices :pd.DataFrame = g.client.get_rates()
-print(prices)
+now = (datetime.datetime.today() + datetime.timedelta(minutes=6)).strftime('%Y-%m-%d %H:%M')
+now_offset_14min =  (datetime.datetime.today() - datetime.timedelta(minutes=8)).strftime('%Y-%m-%d %H:%M')
+current_task : pd.DataFrame = prices[now_offset_14min:now]
+print(current_task)
 #%%
-prices_copy : pd.DataFrame = prices.copy()
-prices_copy["hourly price"] = prices_copy.groupby(prices_copy.index.floor('h'))["prices"].transform('mean')
-print(prices_copy)
+g.client.rescheduler()
 #%%
 
