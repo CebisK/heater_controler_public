@@ -2,7 +2,7 @@ import pandas as pd
 import datetime
 import time
 from entsoe import EntsoePandasClient
-#import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO
 import sys
 
 
@@ -11,8 +11,10 @@ class entsoe_client:
         self.client = EntsoePandasClient(api_key = api_key)
         self.default_heating_time = default_heating_time
         self.heating_cycle = 0
+        self.reschedule_status = False
         self.rescheduler()
         self.controler()
+
 
     def get_rates(self):
         today=datetime.date.today()
@@ -25,7 +27,12 @@ class entsoe_client:
         return prices
         
     def rescheduler(self):
-        prices = self.get_rates()
+        try:
+            prices = self.get_rates()
+        except:
+            print("Prices not available")
+            sys.stdout.flush()
+            return
         d = datetime.datetime.today()+ datetime.timedelta(days=1)
         t = datetime.time(7)
         t1 = datetime.time(hour=23)
@@ -34,6 +41,8 @@ class entsoe_client:
         t_auction = datetime.datetime.combine(d, t2).strftime('%Y-%m-%d %H:%M')
         until_tommorow = datetime.datetime.combine(d, t).strftime('%Y-%m-%d %H:%M')
         now = datetime.datetime.today().strftime('%Y-%m-%d %H:%M')
+        self.reschedule_status = False
+
         print("Available prices")
         sys.stdout.flush()
         print(prices)
@@ -42,7 +51,7 @@ class entsoe_client:
         try:
             remaining_heating_hours = self.heating_cycle.loc[now:until_tommorow].shape[0]
         except:
-            remaining_heating_hours = self.default_heating_time
+            remaining_heating_hours = 0
         
         print("Remaining heating hours")
         sys.stdout.flush()
@@ -52,31 +61,38 @@ class entsoe_client:
         a : pd.DataFrame = prices.loc[now:until_tommorow]
         a = a.sort_values(by="hourly prices").head(remaining_heating_hours)
 
-        avg_night_price = prices.loc[t_evning:].mean()['prices']
-
         b : pd.DataFrame = prices.loc[until_tommorow:]
-        mask = (b.index <= t_auction) & (b["hourly prices"] > avg_night_price)
-        b = b.drop(b[mask].index)
-        b = b.sort_values(by="hourly prices").head(self.default_heating_time)
 
-        self.heating_cycle = pd.concat([a,b])
-        self.heating_cycle = self.heating_cycle.sort_index()
-        print("Rescheduling heating hours")
-        sys.stdout.flush()
-        print(self.heating_cycle)
-        sys.stdout.flush()
+        if b.shape[0] != 0:
+            avg_night_price = prices.loc[t_evning:].mean()['prices']
+            mask = (b.index <= t_auction) & (b["hourly prices"] > avg_night_price)
+            b = b.drop(b[mask].index)
+            b = b.sort_values(by="hourly prices").head(self.default_heating_time)
+
+            self.heating_cycle = pd.concat([a,b])
+            self.heating_cycle = self.heating_cycle.sort_index()
+            print("Rescheduling heating hours")
+            sys.stdout.flush()
+            print(self.heating_cycle)
+            sys.stdout.flush()
+            self.reschedule_status = True
 
     def controler(self):
+        if self.reschedule_status == False:
+            print("Retraying scheduling")
+            sys.stdout.flush()
+            self.rescheduler()
+            
         now = datetime.datetime.today().strftime('%Y-%m-%d %H:%M')
         now_offset_14min =  (datetime.datetime.today() - datetime.timedelta(minutes=14)).strftime('%Y-%m-%d %H:%M')
         current_task : pd.DataFrame = self.heating_cycle.loc[now_offset_14min:now]
         if current_task.shape[0] == 0:
-            #GPIO.output(18, GPIO.LOW)
+            GPIO.output(18, GPIO.LOW)
             print("Boiller is off")
             sys.stdout.flush()
         else:
             self.heating_cycle : pd.DataFrame = pd.concat([self.heating_cycle,current_task]).drop_duplicates(keep=False)
-            #GPIO.output(18, GPIO.HIGH)
+            GPIO.output(18, GPIO.HIGH)
             print("Boiller is on")
             sys.stdout.flush()
             print("Remaining heating hours")
@@ -105,10 +121,10 @@ class entsoe_client:
         print(self.heating_cycle)
         sys.stdout.flush()
 
-"""
+
 def setupGPIO():
     GPIO.setmode(GPIO.BCM)
     GPIO.setwarnings(False)
     GPIO.setup(18, GPIO.OUT)
     GPIO.output(18, GPIO.LOW)
-"""
+
