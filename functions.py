@@ -32,6 +32,7 @@ class entsoe_client:
         except:
             print("Prices not available")
             sys.stdout.flush()
+            self.reschedule_status = False
             return
         d = datetime.datetime.today()+ datetime.timedelta(days=1)
         t = datetime.time(7)

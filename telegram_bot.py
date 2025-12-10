@@ -14,5 +14,5 @@ def set_tel_bot():
 
     bot.add_custom_filter(custom_filters.ChatFilter())
 
-    bot.infinity_polling()
+    bot.infinity_polling(timeout=10, long_polling_timeout = 5)
 
