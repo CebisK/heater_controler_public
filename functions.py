@@ -10,7 +10,7 @@ class entsoe_client:
     def __init__(self, default_heating_time = 4, api_key = None) -> None:
         self.client = EntsoePandasClient(api_key = api_key)
         self.default_heating_time = default_heating_time
-        self.heating_cycle = 0
+        self.heating_cycle = pd.DataFrame()
         self.reschedule_status = False
         self.rescheduler()
         self.controler()
@@ -54,7 +54,7 @@ class entsoe_client:
         except:
             remaining_heating_hours = 0
         
-        print("Remaining heating hours")
+        print("Remaining hea    ting hours")
         sys.stdout.flush()
         print(remaining_heating_hours)
         sys.stdout.flush()
@@ -92,7 +92,11 @@ class entsoe_client:
             print("Boiller is off")
             sys.stdout.flush()
         else:
-            self.heating_cycle : pd.DataFrame = pd.concat([self.heating_cycle,current_task]).drop_duplicates(keep=False)
+            print(current_task)
+            sys.stdout.flush()
+            print("Current task^^^^^^^^^^^")
+            sys.stdout.flush()
+            self.heating_cycle = self.heating_cycle.drop(current_task.index)
             GPIO.output(18, GPIO.HIGH)
             print("Boiller is on")
             sys.stdout.flush()
