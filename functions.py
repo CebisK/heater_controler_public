@@ -41,6 +41,7 @@ class entsoe_client:
         t_evning = datetime.datetime.combine(d, t1).strftime('%Y-%m-%d %H:%M')
         t_auction = datetime.datetime.combine(d, t2).strftime('%Y-%m-%d %H:%M')
         until_tommorow = datetime.datetime.combine(d, t).strftime('%Y-%m-%d %H:%M')
+        until_tommorow_excluding = datetime.datetime.combine((d-pd.Timedelta(minutes=15)), t).strftime('%Y-%m-%d %H:%M')
         now = datetime.datetime.today().strftime('%Y-%m-%d %H:%M')
         self.reschedule_status = False
 
@@ -54,12 +55,12 @@ class entsoe_client:
         except:
             remaining_heating_hours = 0
         
-        print("Remaining hea    ting hours")
+        print("Remaining heating hours")
         sys.stdout.flush()
         print(remaining_heating_hours)
         sys.stdout.flush()
 
-        a : pd.DataFrame = prices.loc[now:until_tommorow]
+        a : pd.DataFrame = prices.loc[now:until_tommorow_excluding]
         a = a.sort_values(by="hourly prices").head(remaining_heating_hours)
 
         b : pd.DataFrame = prices.loc[until_tommorow:]
@@ -109,10 +110,10 @@ class entsoe_client:
         d = datetime.datetime.today()+ datetime.timedelta(days=1)
         t = datetime.time(7)
         until_tommorow = datetime.datetime.combine(d, t).strftime('%Y-%m-%d %H:%M')
-        now = datetime.datetime.today().strftime('%Y-%m-%d %H:%M')
+        until_tommorow_excluding = datetime.datetime.combine((d-pd.Timedelta(minutes=15)), t).strftime('%Y-%m-%d %H:%M')
         now_offset_14min =  (datetime.datetime.today() - datetime.timedelta(minutes=14)).strftime('%Y-%m-%d %H:%M')
         prices = self.get_rates()
-        a = prices.loc[now_offset_14min:until_tommorow]
+        a = prices.loc[now_offset_14min:until_tommorow_excluding]
         a = a.sort_index().head(time)
 
         b = prices.loc[until_tommorow:]
