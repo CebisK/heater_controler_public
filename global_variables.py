@@ -6,4 +6,4 @@ with open('api_keys.json', 'r') as file:
 
 fn.setupGPIO()
 
-client = fn.entsoe_client(22, keys["entso_e"])
+client = fn.entsoe_client(16, keys["entso_e"])

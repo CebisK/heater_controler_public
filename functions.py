@@ -61,20 +61,20 @@ class entsoe_client:
         sys.stdout.flush()
 
         a : pd.DataFrame = prices.loc[now:until_tommorow_excluding]
-        a = a.sort_values(by="hourly prices").head(remaining_heating_hours)
+        a = a.sort_values(by="prices").head(remaining_heating_hours)
 
         b : pd.DataFrame = prices.loc[until_tommorow:]
 
         if b.shape[0] != 0:
             avg_night_price = prices.loc[t_evning:].mean()['prices']
-            mask = (b.index <= t_auction) & (b["hourly prices"] > avg_night_price)
+            mask = (b.index <= t_auction) & (b["prices"] > avg_night_price)
             b = b.drop(b[mask].index)
-            b = b.sort_values(by="hourly prices").head(self.default_heating_time)
+            b = b.sort_values(by="prices").head(self.default_heating_time)
 
             self.heating_cycle = pd.concat([a,b])
             self.heating_cycle = self.heating_cycle.sort_index()
             print("Rescheduling heating hours")
-            sys.stdout.flush()
+            sys.stdout.flush() 
             print(self.heating_cycle)
             sys.stdout.flush()
             self.reschedule_status = True
@@ -117,7 +117,7 @@ class entsoe_client:
         a = a.sort_index().head(time)
 
         b = prices.loc[until_tommorow:]
-        b = b.sort_values(by="hourly prices").head(self.default_heating_time)
+        b = b.sort_values(by="prices").head(self.default_heating_time)
 
         self.heating_cycle = pd.concat([a,b])
         self.heating_cycle = self.heating_cycle.sort_index()
